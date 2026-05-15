@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>张乐康 · AI产品开发 × 音乐教育科技</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Noto+Serif+SC:wght@400;700&family=Noto+Sans+SC:wght@300;400;500&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #080c14;
+  --surface: #0d1220;
+  --surface2: #111827;
+  --border: rgba(99,179,237,0.12);
+  --cyan: #38bdf8;
+  --cyan-dim: rgba(56,189,248,0.15);
+  --violet: #a78bfa;
+  --violet-dim: rgba(167,139,250,0.12);
+  --emerald: #34d399;
+  --emerald-dim: rgba(52,211,153,0.1);
+  --amber: #fbbf24;
+  --text: #e2e8f0;
+  --muted: #64748b;
+  --muted2: #94a3b8;
+  --white: #f8fafc;
+  --glow-cyan: 0 0 40px rgba(56,189,248,0.25);
+  --glow-violet: 0 0 40px rgba(167,139,250,0.25);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Noto Sans SC', sans-serif;
+  font-weight: 300;
+  overflow-x: hidden;
+  cursor: none;
+}
+
+/* ===== CURSOR ===== */
+.cur-dot {
+  width: 6px; height: 6px;
+  background: var(--cyan);
+  border-radius: 50%;
+  position: fixed; pointer-events: none; z-index: 9999;
+  transform: translate(-50%,-50%);
+  transition: width .2s, height .2s, background .2s;
+  box-shadow: 0 0 12px var(--cyan);
+}
+.cur-ring {
+  width: 32px; height: 32px;
+  border: 1px solid rgba(56,189,248,0.5);
+  border-radius: 50%;
+  position: fixed; pointer-events: none; z-index: 9998;
+  transform: translate(-50%,-50%);
+  transition: transform .18s ease, width .3s, height .3s;
+}
+
+/* ===== PROGRESS ===== */
+.prog {
+  position: fixed; top: 0; left: 0; height: 2px; z-index: 1000;
+  background: linear-gradient(90deg, var(--violet), var(--cyan), var(--emerald));
+  width: 0; transition: width .1s;
+  box-shadow: 0 0 10px var(--cyan);
+}
+
+/* ===== CANVAS BACKGROUND ===== */
+#bg-canvas {
+  position: fixed; inset: 0; z-index: 0;
+  opacity: 0.5;
+}
+
+/* ===== NOISE OVERLAY ===== */
+body::after {
+  content: '';
+  position: fixed; inset: 0; z-index: 1;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  opacity: 0.35;
+}
+
+/* ===== NAV ===== */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 500;
+  padding: .9rem 2.5rem;
+  display: flex; justify-content: space-between; align-items: center;
+  transition: background .4s;
+}
+nav.scrolled {
+  background: rgba(8,12,20,0.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+}
+.nav-logo {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800; font-size: 1.1rem;
+  background: linear-gradient(135deg, var(--cyan), var(--violet));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  letter-spacing: .05em;
+}
+.nav-links { display: flex; gap: 2rem; list-style: none; }
+.nav-links a {
+  font-size: .72rem; letter-spacing: .15em; color: var(--muted);
+  text-decoration: none; transition: color .2s;
+  font-family: 'JetBrains Mono', monospace;
+}
+.nav-links a:hover { color: var(--cyan); }
+
+/* ===== LAYOUT ===== */
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 2rem; position: relative; z-index: 2; }
+
+/* ===== HERO ===== */
+.hero {
+  min-height: 100vh;
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+  position: relative; z-index: 2;
+  padding: 6rem 2rem 4rem;
+  text-align: center;
+  overflow: hidden;
+}
+
+.hero-eyebrow {
+  display: inline-flex; align-items: center; gap: .6rem;
+  border: 1px solid rgba(56,189,248,0.3);
+  background: rgba(56,189,248,0.06);
+  padding: .35rem 1.1rem;
+  border-radius: 100px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .72rem; letter-spacing: .15em; color: var(--cyan);
+  opacity: 0; animation: fadeUp .6s ease .1s forwards;
+}
+.hero-eyebrow .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--emerald);
+  animation: pulse 2s ease infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
+
+.hero-name {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: clamp(4rem, 13vw, 9rem);
+  letter-spacing: -.03em;
+  line-height: .95;
+  color: var(--white);
+  opacity: 0; animation: fadeUp .9s cubic-bezier(.16,1,.3,1) .25s forwards;
+  position: relative;
+  text-transform: uppercase;
+}
+.hero-name .char-zh {
+  background: linear-gradient(135deg, var(--cyan) 0%, var(--violet) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  display: inline-block;
+  filter: drop-shadow(0 0 30px rgba(56,189,248,0.4));
+}
+.hero-name .char-outline {
+  -webkit-text-stroke: 1.5px rgba(255,255,255,0.15);
+  -webkit-text-fill-color: transparent;
+}
+
+.hero-sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: clamp(.75rem, 2vw, .95rem);
+  color: var(--muted2);
+  letter-spacing: .12em;
+  margin-top: .5rem;
+  opacity: 0; animation: fadeUp .7s ease .5s forwards;
+}
+.hero-sub .accent { color: var(--cyan); }
+
+.hero-divider {
+  width: 0; height: 1px; margin: 2rem auto;
+  background: linear-gradient(90deg, transparent, var(--cyan), var(--violet), transparent);
+  animation: expandW 1s ease .7s forwards;
+  box-shadow: 0 0 20px rgba(56,189,248,0.3);
+}
+@keyframes expandW { to { width: min(500px,80vw); } }
+
+.hero-desc {
+  max-width: 560px;
+  color: var(--muted2); font-size: clamp(.8rem, 2vw, .92rem);
+  line-height: 1.9; letter-spacing: .02em;
+  opacity: 0; animation: fadeUp .7s ease .85s forwards;
+}
+.hero-desc strong { color: var(--text); font-weight: 500; }
+
+.hero-contacts {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem;
+  margin-top: 2.5rem;
+  opacity: 0; animation: fadeUp .7s ease 1.05s forwards;
+}
+.hero-contact-item {
+  display: flex; align-items: center; gap: .5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: .5rem 1.1rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .78rem; color: var(--muted2);
+  transition: border-color .3s, color .3s, box-shadow .3s;
+}
+.hero-contact-item:hover {
+  border-color: rgba(56,189,248,.4);
+  color: var(--cyan);
+  box-shadow: 0 0 20px rgba(56,189,248,.12);
+}
+.hero-contact-item .icon { font-size: 1em; }
+
+.hero-kws {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: .6rem;
+  margin-top: 2rem;
+  opacity: 0; animation: fadeUp .7s ease 1.2s forwards;
+}
+.kw-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .68rem; letter-spacing: .1em;
+  padding: .25rem .75rem;
+  border-radius: 4px;
+  border: 1px solid;
+  transition: transform .2s;
+}
+.kw-tag:hover { transform: translateY(-2px); }
+.kw-cyan { border-color: rgba(56,189,248,.3); color: var(--cyan); background: rgba(56,189,248,.06); }
+.kw-violet { border-color: rgba(167,139,250,.3); color: var(--violet); background: rgba(167,139,250,.06); }
+.kw-emerald { border-color: rgba(52,211,153,.3); color: var(--emerald); background: rgba(52,211,153,.06); }
+
+.hero-stats {
+  display: flex; gap: 3.5rem; flex-wrap: wrap; justify-content: center;
+  margin-top: 3rem;
+  opacity: 0; animation: fadeUp .7s ease 1.35s forwards;
+}
+.h-stat { text-align: center; }
+.h-stat-num {
+  font-family: 'Syne', sans-serif; font-weight: 800;
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  background: linear-gradient(135deg, var(--cyan), var(--violet));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  line-height: 1;
+}
+.h-stat-label {
+  font-size: .65rem; color: var(--muted);
+  letter-spacing: .15em; margin-top: .3rem;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.scroll-hint {
+  position: absolute; bottom: 2.5rem; left: 50%;
+  transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: .5rem;
+  color: var(--muted);
+  font-size: .6rem; letter-spacing: .2em;
+  font-family: 'JetBrains Mono', monospace;
+  opacity: 0; animation: fadeIn 1s ease 2s forwards;
+}
+.scroll-arrow {
+  width: 20px; height: 20px;
+  border-right: 1px solid var(--muted); border-bottom: 1px solid var(--muted);
+  transform: rotate(45deg);
+  animation: arrowBounce 1.5s ease infinite;
+}
+@keyframes arrowBounce { 0%,100%{transform:rotate(45deg) translate(0,0)} 50%{transform:rotate(45deg) translate(3px,3px)} }
+
+/* ===== SECTION COMMON ===== */
+section { padding: 5.5rem 0; border-bottom: 1px solid var(--border); }
+section:last-child { border-bottom: none; }
+
+.sec-label {
+  display: flex; align-items: center; gap: 1rem;
+  margin-bottom: 3rem;
+}
+.sec-num {
+  font-family: 'JetBrains Mono', monospace; font-size: .75rem;
+  color: var(--cyan); opacity: .5;
+}
+.sec-title {
+  font-family: 'Syne', sans-serif; font-weight: 700;
+  font-size: 1.5rem; color: var(--white);
+  letter-spacing: .03em;
+}
+.sec-line {
+  flex: 1; height: 1px;
+  background: linear-gradient(90deg, var(--border), transparent);
+}
+
+/* ===== HIGHLIGHT / INTRO CARD ===== */
+.intro-card {
+  background: linear-gradient(135deg, rgba(56,189,248,.06) 0%, rgba(167,139,250,.06) 100%);
+  border: 1px solid rgba(56,189,248,.2);
+  border-radius: 16px;
+  padding: 2.5rem;
+  position: relative;
+  overflow: hidden;
+  opacity: 0; transform: translateY(24px);
+}
+.intro-card.vis { animation: revealUp .7s ease forwards; }
+.intro-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, var(--cyan), var(--violet), var(--emerald));
+}
+.intro-card-text {
+  font-size: .92rem; line-height: 2; color: var(--muted2);
+  letter-spacing: .02em;
+}
+.intro-card-text strong { color: var(--cyan); font-weight: 500; }
+
+/* ===== PROJECT CARDS ===== */
+.projects-grid { display: grid; gap: 1.5rem; }
+
+.proj-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 2rem 2rem 2rem 2rem;
+  position: relative; overflow: hidden;
+  opacity: 0; transform: translateY(24px);
+  transition: border-color .3s, box-shadow .3s, transform .3s;
+}
+.proj-card.vis { animation: revealUp .6s ease forwards; }
+.proj-card::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(56,189,248,.04) 0%, transparent 60%);
+  opacity: 0; transition: opacity .4s;
+}
+.proj-card:hover { border-color: rgba(56,189,248,.35); box-shadow: var(--glow-cyan); transform: translateY(-4px); }
+.proj-card:hover::before { opacity: 1; }
+
+.proj-card.violet-card:hover { border-color: rgba(167,139,250,.35); box-shadow: var(--glow-violet); }
+.proj-card.violet-card::before { background: linear-gradient(135deg, rgba(167,139,250,.04) 0%, transparent 60%); }
+
+.proj-header {
+  display: flex; flex-wrap: wrap; align-items: flex-start;
+  gap: .75rem; margin-bottom: 1rem;
+}
+.proj-icon-wrap {
+  width: 48px; height: 48px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem; flex-shrink: 0;
+}
+.proj-meta { flex: 1; min-width: 160px; }
+.proj-title {
+  font-family: 'Syne', sans-serif; font-weight: 700;
+  font-size: 1.05rem; color: var(--white);
+  display: flex; align-items: center; gap: .6rem; flex-wrap: wrap;
+  margin-bottom: .2rem;
+}
+.proj-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .62rem; letter-spacing: .08em;
+  padding: .15rem .5rem; border-radius: 4px;
+  background: var(--cyan-dim); color: var(--cyan);
+  border: 1px solid rgba(56,189,248,.25);
+}
+.proj-badge.violet { background: var(--violet-dim); color: var(--violet); border-color: rgba(167,139,250,.25); }
+.proj-period {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .68rem; color: var(--muted);
+}
+.proj-desc {
+  font-size: .83rem; line-height: 1.9; color: var(--muted2);
+}
+.proj-tags {
+  display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1rem;
+}
+.proj-tag {
+  font-family: 'JetBrains Mono', monospace; font-size: .65rem;
+  padding: .18rem .6rem; border-radius: 4px;
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--muted2);
+}
+
+.proj-bullets {
+  list-style: none; margin-top: .8rem;
+}
+.proj-bullets li {
+  padding-left: 1.2rem; position: relative;
+  font-size: .82rem; color: var(--muted2);
+  line-height: 1.8; margin-bottom: .2rem;
+}
+.proj-bullets li::before {
+  content: '›';
+  position: absolute; left: 0;
+  color: var(--cyan); font-size: 1em;
+}
+.proj-bullets.violet li::before { color: var(--violet); }
+
+/* ===== SKILLS ===== */
+.skills-layout {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+.skill-group {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.6rem;
+  opacity: 0; transform: translateY(20px);
+  transition: border-color .3s;
+}
+.skill-group.vis { animation: revealUp .6s ease forwards; }
+.skill-group:hover { border-color: rgba(56,189,248,.2); }
+
+.sg-title {
+  font-family: 'JetBrains Mono', monospace; font-size: .72rem;
+  letter-spacing: .15em; color: var(--cyan);
+  margin-bottom: 1.2rem;
+  display: flex; align-items: center; gap: .5rem;
+}
+.sg-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.sg-title.violet-t { color: var(--violet); }
+.sg-title.emerald-t { color: var(--emerald); }
+
+.skill-item { margin-bottom: .9rem; }
+.skill-row {
+  display: flex; justify-content: space-between;
+  font-size: .8rem; margin-bottom: .3rem;
+}
+.skill-name { color: var(--text); }
+.skill-pct { font-family: 'JetBrains Mono', monospace; font-size: .72rem; color: var(--muted); }
+.bar-bg {
+  height: 3px; background: rgba(255,255,255,.06);
+  border-radius: 10px; overflow: hidden;
+}
+.bar-fill {
+  height: 100%; border-radius: 10px;
+  background: linear-gradient(90deg, var(--cyan), var(--violet));
+  width: 0; transition: width 1.3s cubic-bezier(.16,1,.3,1);
+}
+.bar-fill.violet-bar { background: linear-gradient(90deg, var(--violet), #ec4899); }
+.bar-fill.emerald-bar { background: linear-gradient(90deg, var(--emerald), var(--cyan)); }
+
+/* Cert badges */
+.cert-grid {
+  display: flex; flex-wrap: wrap; gap: .75rem;
+  margin-top: 1rem;
+}
+.cert-item {
+  display: flex; align-items: center; gap: .5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: .5rem 1rem;
+  font-size: .78rem; color: var(--muted2);
+  transition: border-color .3s, color .3s;
+}
+.cert-item:hover { border-color: rgba(167,139,250,.4); color: var(--violet); }
+.cert-item .ci { color: var(--amber); }
+
+/* ===== WORK EXPERIENCE TIMELINE ===== */
+.timeline { position: relative; padding-left: 2rem; }
+.timeline::before {
+  content: ''; position: absolute; left: 0; top: 8px; bottom: 0;
+  width: 1px;
+  background: linear-gradient(to bottom, var(--cyan), rgba(56,189,248,.05));
+}
+.t-item {
+  position: relative; padding-bottom: 3rem;
+  opacity: 0; transform: translateX(-16px);
+}
+.t-item.vis { animation: slideRight .6s ease forwards; }
+@keyframes slideRight { to { opacity: 1; transform: translateX(0); } }
+.t-item::before {
+  content: ''; position: absolute; left: -2.35rem; top: 5px;
+  width: 12px; height: 12px;
+  background: var(--bg); border: 2px solid var(--cyan);
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(56,189,248,.4);
+  transition: background .3s, transform .3s;
+}
+.t-item:hover::before { background: var(--cyan); transform: scale(1.3); }
+
+.t-header {
+  display: flex; flex-wrap: wrap; align-items: baseline;
+  gap: .4rem 1rem; margin-bottom: .6rem;
+}
+.t-company {
+  font-family: 'Syne', sans-serif; font-weight: 700;
+  font-size: 1rem; color: var(--white);
+}
+.t-role {
+  font-family: 'JetBrains Mono', monospace; font-size: .68rem;
+  padding: .15rem .55rem; border-radius: 4px;
+  background: var(--cyan-dim); color: var(--cyan);
+  border: 1px solid rgba(56,189,248,.25);
+}
+.t-period {
+  font-family: 'JetBrains Mono', monospace; font-size: .68rem;
+  color: var(--muted); margin-left: auto;
+}
+.t-body {
+  font-size: .82rem; color: var(--muted2); line-height: 1.9;
+}
+.t-body ul { list-style: none; margin-top: .5rem; }
+.t-body li {
+  padding-left: 1.2rem; position: relative; margin-bottom: .2rem;
+}
+.t-body li::before { content: '›'; position: absolute; left: 0; color: var(--cyan); }
+
+.ach-row {
+  display: flex; flex-wrap: wrap; gap: .6rem; margin-top: .9rem;
+}
+.ach-pill {
+  display: flex; align-items: center; gap: .4rem;
+  background: linear-gradient(135deg, rgba(52,211,153,.1), rgba(56,189,248,.1));
+  border: 1px solid rgba(52,211,153,.3);
+  border-radius: 100px; padding: .3rem .9rem;
+  font-size: .75rem; color: var(--emerald); font-weight: 500;
+}
+
+/* ===== EDUCATION ===== */
+.edu-card {
+  background: linear-gradient(135deg, var(--surface) 0%, var(--surface2) 100%);
+  border: 1px solid rgba(167,139,250,.2);
+  border-radius: 16px; padding: 2.5rem;
+  position: relative; overflow: hidden;
+  opacity: 0; transform: translateY(24px);
+}
+.edu-card.vis { animation: revealUp .7s ease forwards; }
+.edu-card::after {
+  content: '♩ ♪ ♫ ♬ 𝄞';
+  position: absolute; right: 2rem; top: 1.8rem;
+  font-size: 1.8rem; letter-spacing: .5rem;
+  color: rgba(167,139,250,.1);
+  animation: floatEdu 4s ease-in-out infinite alternate;
+}
+@keyframes floatEdu { from{transform:translateY(0) rotate(-3deg)} to{transform:translateY(-8px) rotate(3deg)} }
+.edu-school {
+  font-family: 'Syne', sans-serif; font-weight: 800;
+  font-size: 1.5rem;
+  background: linear-gradient(135deg, var(--violet), var(--cyan));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  margin-bottom: .25rem;
+}
+.edu-degree {
+  font-family: 'JetBrains Mono', monospace; font-size: .8rem;
+  color: var(--muted2); margin-bottom: .4rem;
+}
+.edu-rank {
+  display: inline-block;
+  background: linear-gradient(90deg, var(--amber), #f97316);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  font-weight: 700; font-size: .95rem; margin-bottom: 1.4rem;
+}
+.course-chips { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1.4rem; }
+.course-chip {
+  font-family: 'JetBrains Mono', monospace; font-size: .68rem;
+  padding: .2rem .65rem; border-radius: 4px;
+  background: rgba(167,139,250,.08); border: 1px solid rgba(167,139,250,.2);
+  color: var(--violet);
+}
+.honors { display: flex; flex-wrap: wrap; gap: .75rem; }
+.honor {
+  display: flex; align-items: center; gap: .4rem;
+  font-size: .78rem; color: var(--muted2);
+}
+.honor-icon { color: var(--amber); }
+
+/* ===== ACTIVITIES ===== */
+.act-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap: 1rem; }
+.act-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px; padding: 1.4rem;
+  opacity: 0; transform: translateY(16px);
+}
+.act-card.vis { animation: revealUp .5s ease forwards; }
+.act-card:hover { border-color: rgba(52,211,153,.25); }
+.act-card-title {
+  font-family: 'Syne', sans-serif; font-weight: 700;
+  font-size: .9rem; color: var(--white); margin-bottom: .6rem;
+  display: flex; align-items: center; gap: .5rem;
+}
+.act-card p { font-size: .78rem; color: var(--muted2); line-height: 1.8; }
+
+/* ===== CONTACT ===== */
+.contact-sec {
+  text-align: center; padding: 6rem 2rem;
+  position: relative; z-index: 2;
+}
+.contact-glow {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  width: 600px; height: 300px;
+  background: radial-gradient(ellipse, rgba(56,189,248,.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+.contact-title {
+  font-family: 'Syne', sans-serif; font-weight: 800;
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  color: var(--white); margin-bottom: .5rem;
+  text-transform: uppercase; letter-spacing: .05em;
+}
+.contact-sub {
+  font-family: 'JetBrains Mono', monospace; font-size: .78rem;
+  letter-spacing: .2em; color: var(--muted); margin-bottom: 2.5rem;
+}
+.contact-links {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem;
+}
+.c-link {
+  display: flex; align-items: center; gap: .6rem;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: .75rem 1.5rem;
+  font-family: 'JetBrains Mono', monospace; font-size: .8rem;
+  color: var(--muted2); text-decoration: none;
+  transition: all .3s;
+}
+.c-link:hover {
+  border-color: rgba(56,189,248,.4);
+  color: var(--cyan);
+  box-shadow: var(--glow-cyan);
+  transform: translateY(-2px);
+}
+.c-link .ico { font-size: 1em; }
+
+/* ===== ANIMATIONS ===== */
+@keyframes fadeUp { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
+@keyframes fadeIn { to{opacity:1} }
+@keyframes revealUp { to{opacity:1;transform:translateY(0)} }
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+<div class="cur-dot" id="curDot"></div>
+<div class="cur-ring" id="curRing"></div>
+<div class="prog" id="prog"></div>
+
+<nav id="nav">
+  <div class="nav-logo">ZLK</div>
+  <ul class="nav-links">
+    <li><a href="#projects">// PROJECTS</a></li>
+    <li><a href="#skills">// SKILLS</a></li>
+    <li><a href="#work">// WORK</a></li>
+    <li><a href="#edu">// EDUCATION</a></li>
+    <li><a href="#contact">// CONTACT</a></li>
+  </ul>
+</nav>
+
+<!-- ===== HERO ===== -->
+<section class="hero">
+  <div class="hero-eyebrow"><span class="dot"></span>AVAILABLE FOR HIRE · 深圳</div>
+
+  <h1 class="hero-name">
+    <span class="char-zh">张</span><span class="char-zh">乐</span><span class="char-zh">康</span>
+  </h1>
+  <div class="hero-sub">
+    <span class="accent">AI PRODUCT</span> × MUSIC EDUCATION TECH
+  </div>
+
+  <div class="hero-divider"></div>
+
+  <p class="hero-desc">
+    音乐教育专业背景 + AI 工具辅助开发实践，<br>
+    能从<strong>真实教学与情绪表达场景</strong>中识别需求，<br>
+    转化为产品功能、页面流程与可验证的开发任务。
+  </p>
+
+  <div class="hero-contacts">
+    <div class="hero-contact-item"><span class="icon">📞</span>13423759790</div>
+    <div class="hero-contact-item"><span class="icon">✉</span>673819340@qq.com</div>
+    <div class="hero-contact-item"><span class="icon">📍</span>深圳 · 期望薪资 6-8K</div>
+  </div>
+
+  <div class="hero-kws">
+    <span class="kw-tag kw-cyan">AI 产品助理</span>
+    <span class="kw-tag kw-violet">教育科技</span>
+    <span class="kw-tag kw-cyan">AI 应用协作</span>
+    <span class="kw-tag kw-emerald">音乐理论工具</span>
+    <span class="kw-tag kw-violet">用户需求分析</span>
+    <span class="kw-tag kw-emerald">产品运营</span>
+  </div>
+
+  <div class="hero-stats">
+    <div class="h-stat">
+      <div class="h-stat-num" id="s1">0</div>
+      <div class="h-stat-label">YEARS EXPERIENCE</div>
+    </div>
+    <div class="h-stat">
+      <div class="h-stat-num" id="s2">0</div>
+      <div class="h-stat-label">AI PROJECTS</div>
+    </div>
+    <div class="h-stat">
+      <div class="h-stat-num" id="s3">0</div>
+      <div class="h-stat-label">TOP % IN MAJOR</div>
+    </div>
+    <div class="h-stat">
+      <div class="h-stat-num" id="s4">0</div>
+      <div class="h-stat-label">STUDENT +SCORE</div>
+    </div>
+  </div>
+
+  <div class="scroll-hint">
+    <div class="scroll-arrow"></div>
+    SCROLL
+  </div>
+</section>
+
+<div class="wrap">
+
+  <!-- 个人亮点 -->
+  <section>
+    <div class="sec-label">
+      <span class="sec-num">00</span>
+      <span class="sec-title">个人亮点</span>
+      <div class="sec-line"></div>
+    </div>
+    <div class="intro-card">
+      <p class="intro-card-text">
+        从 <strong>广东技术师范大学音乐学（师范）本科</strong>（专业前10%）出发，拥有声乐、钢琴即兴伴奏、和声写作等扎实音乐理论基础，并在多所培训机构积累了真实的教学、运营与客户服务经验。<br><br>
+        2026 年起，借助 <strong>Codex、Claude</strong> 等 AI 编程工具，独立推进 <strong>ChordLab</strong>（音乐理论工具 App）与<strong>「吐草」</strong>（匿名情绪表达小程序）两款产品，形成了「需求文档 → 功能拆解 → 代码生成 → 运行验证 → 问题修复」的完整迭代意识。适合 <strong>AI 产品助理、教育科技产品运营、AI 应用协作</strong>等岗位。
+      </p>
+    </div>
+  </section>
+
+  <!-- 项目经历 -->
+  <section id="projects">
+    <div class="sec-label">
+      <span class="sec-num">01</span>
+      <span class="sec-title">项目经历</span>
+      <div class="sec-line"></div>
+    </div>
+    <div class="projects-grid">
+
+      <div class="proj-card">
+        <div class="proj-header">
+          <div class="proj-icon-wrap">🎵</div>
+          <div class="proj-meta">
+            <div class="proj-title">
+              ChordLab 音乐理论工具
+              <span class="proj-badge">独立开发者</span>
+              <span class="proj-badge">AI 协作</span>
+            </div>
+            <div class="proj-period">2026 — 至今 · Android · Flutter</div>
+          </div>
+        </div>
+        <div class="proj-desc">
+          面向中级业余音乐学习者与在校音乐生，完成从0到1的产品设计与 AI 辅助开发实践。
+        </div>
+        <ul class="proj-bullets">
+          <li>完成用户场景梳理、功能架构、页面流程与核心交互设计</li>
+          <li>通过 Codex / Claude 推进核心模块实现与调试，形成完整迭代闭环</li>
+          <li>功能覆盖：和弦查询（钢琴/吉他图示 + 音频播放）、音程参考、音阶/调式</li>
+          <li>节奏工具模块引入可视化节奏型展示与<strong style="color:var(--cyan)">麦克风拍击准确度检测</strong></li>
+          <li>坚持无广告、无弹窗、无强制注册的低干扰核心体验</li>
+        </ul>
+        <div class="proj-tags">
+          <span class="proj-tag">Flutter</span>
+          <span class="proj-tag">AI编程协作</span>
+          <span class="proj-tag">音乐理论</span>
+          <span class="proj-tag">产品设计</span>
+          <span class="proj-tag">需求分析</span>
+          <span class="proj-tag">Android</span>
+        </div>
+      </div>
+
+      <div class="proj-card violet-card">
+        <div class="proj-header">
+          <div class="proj-icon-wrap">🌱</div>
+          <div class="proj-meta">
+            <div class="proj-title">
+              吐草 · 匿名情绪表达小程序
+              <span class="proj-badge violet">独立开发者</span>
+              <span class="proj-badge violet">微信小程序</span>
+            </div>
+            <div class="proj-period">2026 — 至今 · 微信小程序</div>
+          </div>
+        </div>
+        <div class="proj-desc">
+          定位「轻表达、轻互动、轻发泄、轻成长」，为用户提供匿名倾诉与情绪释放场景。
+        </div>
+        <ul class="proj-bullets violet">
+          <li>独立完成产品定位、信息架构与功能拆解</li>
+          <li>借助 AI 工具推进开发、调试与迭代全流程</li>
+          <li>将音乐治疗项目中情绪疏导经验转化为产品设计思路</li>
+          <li>围绕弱社交互动与匿名安全感构建核心使用场景</li>
+        </ul>
+        <div class="proj-tags">
+          <span class="proj-tag">微信小程序</span>
+          <span class="proj-tag">情绪设计</span>
+          <span class="proj-tag">AI协作开发</span>
+          <span class="proj-tag">产品运营</span>
+          <span class="proj-tag">用户研究</span>
+        </div>
+      </div>
+
+      <div class="proj-card">
+        <div class="proj-header">
+          <div class="proj-icon-wrap">🎶</div>
+          <div class="proj-meta">
+            <div class="proj-title">
+              音乐治疗对社工群体心理的影响
+              <span class="proj-badge">项目组员</span>
+            </div>
+            <div class="proj-period">2020.11 — 2021.05</div>
+          </div>
+        </div>
+        <div class="proj-desc">
+          通过音乐辅导心理宣泄人群，积累音乐功能性应用于真实情绪疏导场景的经验，后续直接转化为「吐草」产品的设计思路。
+        </div>
+        <ul class="proj-bullets">
+          <li>一对一交流了解用户情绪状态，演奏适合缓解压力的曲目</li>
+          <li>积累了音乐 × 情绪 × 用户沟通的第一手实践经验</li>
+        </ul>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 核心技能 -->
+  <section id="skills">
+    <div class="sec-label">
+      <span class="sec-num">02</span>
+      <span class="sec-title">核心技能</span>
+      <div class="sec-line"></div>
+    </div>
+    <div class="skills-layout">
+      <div class="skill-group">
+        <div class="sg-title">AI 与产品</div>
+        <div class="skill-item">
+          <div class="skill-row"><span class="skill-name">AI 编程协作（Codex/Claude）</span><span class="skill-pct">82%</span></div>
+          <div class="bar-bg"><div class="bar-fill" data-w="82"></div></div>
+        </div>
+        <div class="skill-item">
+          <div class="skill-row"><span class="skill-name">需求分析 · 功能拆解</span><span class="skill-pct">85%</span></div>
+          <div class="bar-bg"><div class="bar-fill" data-w="85"></div></div>
+        </div>
+        <div class="skill-item">
+          <div class="skill-row"><span class="skill-name">产品流程设计</span><span class="skill-pct">80%</span></div>
+          <div class="bar-bg"><div class="bar-fill" data-w="80"></div></div>
+        </div>
+        <div class="skill-item">
+          <div class="skill-row"><span class="skill-name">微信小程序开发协作</span><span class="skill-pct">72%</span></div>
+          <div class="bar-bg"><div class="bar-fill" data-w="72"></div></div>
+        </div>
+      </div>
+
+      <div class="skill-group">
+        <div class="sg-title violet-t">音乐专业</div>
+        <div class="skill-item">
+          <div class="skill-row"><span class="skill-name">声乐演唱</span><span class="skill-pct">90%</span></div>
+          <div class="bar-bg"><div class="bar-fill violet-bar" data-w="90"></div></div>
+        </div>
+        <div class="skill-item">
+          <div class="skill-row"><span class="skill-name">钢琴即兴伴奏</span><span class="skill-pct">85%</span></div>
+          <div class="bar-bg"><div class="bar-fill violet-bar" data-w="85"></div></div>
+        </div>
+        <div class="skill-item">
+          <div class="skill-row"><span class="skill-name">音乐理论 · 和声写作</span><span class="skill-pct">83%</span></div>
+          <div class="bar-bg"><div class="bar-fill violet-bar" data-w="83"></div></div>
+        </div>
+        <div class="skill-item">
+          <div class="skill-row"><span class="skill-name">视唱练耳 · 课堂设计</span><span class="skill-pct">88%</span></div>
+          <div class="bar-bg"><div class="bar-fill violet-bar" data-w="88"></div></div>
+        </div>
+      </div>
+
+      <div class="skill-group">
+        <div class="sg-title emerald-t">通用能力</div>
+        <div class="skill-item">
+          <div class="skill-row"><span class="skill-name">用户沟通 · 销售转化</span><span class="skill-pct">88%</span></div>
+          <div class="bar-bg"><div class="bar-fill emerald-bar" data-w="88"></div></div>
+        </div>
+        <div class="skill-item">
+          <div class="skill-row"><span class="skill-name">教学评估 · 策略调整</span><span class="skill-pct">85%</span></div>
+          <div class="bar-bg"><div class="bar-fill emerald-bar" data-w="85"></div></div>
+        </div>
+        <div class="skill-item">
+          <div class="skill-row"><span class="skill-name">课件制作 · 活动组织</span><span class="skill-pct">78%</span></div>
+          <div class="bar-bg"><div class="bar-fill emerald-bar" data-w="78"></div></div>
+        </div>
+        <div class="skill-item">
+          <div class="skill-row"><span class="skill-name">外呼回访 · 需求记录</span><span class="skill-pct">80%</span></div>
+          <div class="bar-bg"><div class="bar-fill emerald-bar" data-w="80"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:2rem;">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:.72rem;letter-spacing:.15em;color:var(--muted);margin-bottom:1rem;">// CERTIFICATES</div>
+      <div class="cert-grid">
+        <div class="cert-item"><span class="ci">🏅</span>高中音乐教师资格证</div>
+        <div class="cert-item"><span class="ci">💻</span>计算机二级证书</div>
+        <div class="cert-item"><span class="ci">🌐</span>高等学校英语应用能力 A级</div>
+        <div class="cert-item"><span class="ci">🗣️</span>普通话水平测试二级甲等</div>
+        <div class="cert-item"><span class="ci">🚗</span>C1 类驾驶执照</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 工作经历 -->
+  <section id="work">
+    <div class="sec-label">
+      <span class="sec-num">03</span>
+      <span class="sec-title">工作经历</span>
+      <div class="sec-line"></div>
+    </div>
+    <div class="timeline">
+
+      <div class="t-item">
+        <div class="t-header">
+          <span class="t-company">深圳市人力资本（集团）有限公司</span>
+          <span class="t-role">运营商专员</span>
+          <span class="t-period">2025.11 — 至今</span>
+        </div>
+        <div class="t-body">
+          <p>代理中国电信营业厅，负责前台业务受理与客户服务。</p>
+          <ul>
+            <li>熟练处理 SIM 卡补换卡、套餐变更、宽带及增值业务等高频服务</li>
+            <li>积极推介套餐、宽带与增值业务，锻炼陌生客户沟通与销售转化能力</li>
+            <li>负责客户主动外呼回访，具备良好的逻辑梳理和情绪把控能力</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="t-item">
+        <div class="t-header">
+          <span class="t-company">碧波中小学教育培训中心</span>
+          <span class="t-role">数学教师</span>
+          <span class="t-period">2024.07 — 2025.11</span>
+        </div>
+        <div class="t-body">
+          <ul>
+            <li>面向小学至初中学生制定个性化教学方案，定期评估进度并调整策略</li>
+            <li>深入讲解数学复杂概念，设计有效教学策略提升学习兴趣</li>
+          </ul>
+          <div class="ach-row">
+            <span class="ach-pill">🏆 初中生数学年级第一 · 满分100分</span>
+            <span class="ach-pill">📈 六年级 49分 → 93分</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="t-item">
+        <div class="t-header">
+          <span class="t-company">音乐教育相关经历</span>
+          <span class="t-role">音乐教师 / 实习教师</span>
+          <span class="t-period">2023.03 — 2024.08</span>
+        </div>
+        <div class="t-body">
+          <ul>
+            <li>广州乐享音教（2023.03-2024.03）：音乐理论、视唱练耳、乐器演奏等课程教学，定制个性化教学方案</li>
+            <li>乐昌万紫千红（2024.06-2024.08）：短期音乐课程设计、音乐会组织与家校沟通</li>
+            <li>天健学校（2023.10-2023.12）：集备讨论、教案撰写、说课试讲、听课记录与教学反思</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 教育背景 -->
+  <section id="edu">
+    <div class="sec-label">
+      <span class="sec-num">04</span>
+      <span class="sec-title">教育背景</span>
+      <div class="sec-line"></div>
+    </div>
+    <div class="edu-card">
+      <div class="edu-school">广东技术师范大学</div>
+      <div class="edu-degree">本科 · 音乐学（师范）· 2020 — 2024</div>
+      <div class="edu-rank">专业排名 · 前 10%</div>
+      <div class="course-chips">
+        <span class="course-chip">声乐演唱</span>
+        <span class="course-chip">钢琴即兴伴奏</span>
+        <span class="course-chip">多声部和声写作</span>
+        <span class="course-chip">曲式分析</span>
+        <span class="course-chip">音乐教育</span>
+      </div>
+      <div class="honors">
+        <span class="honor"><span class="honor-icon">🥇</span>广东省"百歌颂中华"合唱比赛一等奖</span>
+        <span class="honor"><span class="honor-icon">🏃</span>2022年校运会院级1000米男子第一名</span>
+        <span class="honor"><span class="honor-icon">🎤</span>广东省多项大型合唱演出成员</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 活动经历 -->
+  <section>
+    <div class="sec-label">
+      <span class="sec-num">05</span>
+      <span class="sec-title">活动经历</span>
+      <div class="sec-line"></div>
+    </div>
+    <div class="act-grid">
+      <div class="act-card">
+        <div class="act-card-title">🎤 省级合唱演出</div>
+        <p>广东省河源市百年党成立群众音乐活动、第八届台湾岭南行合唱表演、省音乐协会"我们的新时代"合唱、东莞市"劳动者之歌"合唱成员。</p>
+      </div>
+      <div class="act-card">
+        <div class="act-card-title">🤝 志愿服务</div>
+        <p>校园食堂秩序维护（5小时）、核酸检测秩序员（16小时），协助辅导老年人及儿童核酸码使用，具备服务责任心与执行力。</p>
+      </div>
+    </div>
+  </section>
+
+</div><!-- /wrap -->
+
+<!-- Contact -->
+<div class="contact-sec" id="contact">
+  <div class="contact-glow"></div>
+  <div class="contact-title">OPEN TO WORK</div>
+  <div class="contact-sub">AI 产品助理 · 教育科技 · 深圳 · 6-8K</div>
+  <div class="contact-links">
+    <a class="c-link" href="tel:13423759790"><span class="ico">📞</span>13423759790</a>
+    <a class="c-link" href="mailto:673819340@qq.com"><span class="ico">✉</span>673819340@qq.com</a>
+    <a class="c-link" href="#"><span class="ico">💬</span>Boss直聘</a>
+  </div>
+</div>
+
+<script>
+/* ===== CANVAS PARTICLE / WAVEFORM BG ===== */
+const canvas = document.getElementById('bg-canvas');
+const ctx = canvas.getContext('2d');
+let W, H, particles = [], lines = [], t = 0;
+
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+resize(); window.addEventListener('resize', resize);
+
+// Particles
+for (let i = 0; i < 60; i++) {
+  particles.push({
+    x: Math.random() * 2, y: Math.random(),
+    vx: (Math.random() - .5) * .0003, vy: (Math.random() - .5) * .0003,
+    r: Math.random() * 1.5 + .5,
+    col: Math.random() > .5 ? [56,189,248] : [167,139,250]
+  });
+}
+
+function drawBg() {
+  ctx.clearRect(0, 0, W, H);
+
+  // Waveform lines
+  for (let l = 0; l < 3; l++) {
+    ctx.beginPath();
+    const amp = 30 + l * 15;
+    const freq = .008 + l * .003;
+    const speed = .6 + l * .3;
+    const col = l === 0 ? '56,189,248' : l === 1 ? '167,139,250' : '52,211,153';
+    ctx.strokeStyle = `rgba(${col},0.12)`;
+    ctx.lineWidth = 1;
+    for (let x = 0; x <= W; x += 3) {
+      const y = H * (.3 + l * .2) + Math.sin(x * freq + t * speed) * amp;
+      x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+
+  // Particles
+  particles.forEach(p => {
+    p.x += p.vx; p.y += p.vy;
+    if (p.x < 0) p.x = 1; if (p.x > 1) p.x = 0;
+    if (p.y < 0) p.y = 1; if (p.y > 1) p.y = 0;
+    ctx.beginPath();
+    ctx.arc(p.x * W, p.y * H, p.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${p.col.join(',')},0.35)`;
+    ctx.fill();
+  });
+
+  // Connect nearby particles
+  for (let i = 0; i < particles.length; i++) {
+    for (let j = i + 1; j < particles.length; j++) {
+      const dx = (particles[i].x - particles[j].x) * W;
+      const dy = (particles[i].y - particles[j].y) * H;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist < 120) {
+        ctx.beginPath();
+        ctx.moveTo(particles[i].x*W, particles[i].y*H);
+        ctx.lineTo(particles[j].x*W, particles[j].y*H);
+        ctx.strokeStyle = `rgba(56,189,248,${.08*(1-dist/120)})`;
+        ctx.lineWidth = .5;
+        ctx.stroke();
+      }
+    }
+  }
+
+  t += .02;
+  requestAnimationFrame(drawBg);
+}
+drawBg();
+
+/* ===== CURSOR ===== */
+const dot = document.getElementById('curDot');
+const ring = document.getElementById('curRing');
+let mx=0, my=0, rx=0, ry=0;
+document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; });
+(function animCur() {
+  dot.style.left = mx+'px'; dot.style.top = my+'px';
+  rx += (mx-rx)*.12; ry += (my-ry)*.12;
+  ring.style.left = rx+'px'; ring.style.top = ry+'px';
+  requestAnimationFrame(animCur);
+})();
+document.querySelectorAll('a,button,.proj-card,.t-item,.skill-group,.act-card').forEach(el => {
+  el.addEventListener('mouseenter', () => {
+    dot.style.transform = 'translate(-50%,-50%) scale(3)';
+    dot.style.background = 'var(--violet)';
+    dot.style.boxShadow = '0 0 20px var(--violet)';
+    ring.style.width = '50px'; ring.style.height = '50px';
+  });
+  el.addEventListener('mouseleave', () => {
+    dot.style.transform = 'translate(-50%,-50%) scale(1)';
+    dot.style.background = 'var(--cyan)';
+    dot.style.boxShadow = '0 0 12px var(--cyan)';
+    ring.style.width = '32px'; ring.style.height = '32px';
+  });
+});
+
+/* ===== SCROLL NAV + PROGRESS ===== */
+const nav = document.getElementById('nav');
+const prog = document.getElementById('prog');
+window.addEventListener('scroll', () => {
+  nav.classList.toggle('scrolled', window.scrollY > 60);
+  const total = document.body.scrollHeight - window.innerHeight;
+  prog.style.width = (window.scrollY / total * 100) + '%';
+});
+
+/* ===== COUNT UP ===== */
+function countUp(el, target, dur=1400, suffix='') {
+  let s=0, step=target/(dur/16);
+  const id = setInterval(() => {
+    s = Math.min(s+step, target);
+    el.textContent = Math.floor(s) + suffix;
+    if (s>=target) clearInterval(id);
+  }, 16);
+}
+setTimeout(() => {
+  countUp(document.getElementById('s1'), 3, 1200);
+  countUp(document.getElementById('s2'), 2, 1000);
+  countUp(document.getElementById('s3'), 10, 1300, '%');
+  countUp(document.getElementById('s4'), 44, 1500, '+');
+}, 700);
+
+/* ===== INTERSECTION OBSERVER ===== */
+const obs = new IntersectionObserver(entries => {
+  entries.forEach((e, i) => {
+    if (e.isIntersecting) {
+      const delay = parseInt(e.target.dataset.delay || 0);
+      setTimeout(() => e.target.classList.add('vis'), delay);
+      obs.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.intro-card').forEach(el => obs.observe(el));
+document.querySelectorAll('.proj-card').forEach((el,i) => { el.dataset.delay=i*120; obs.observe(el); });
+document.querySelectorAll('.skill-group').forEach((el,i) => { el.dataset.delay=i*100; obs.observe(el); });
+document.querySelectorAll('.t-item').forEach((el,i) => { el.dataset.delay=i*130; obs.observe(el); });
+document.querySelectorAll('.edu-card').forEach(el => obs.observe(el));
+document.querySelectorAll('.act-card').forEach((el,i) => { el.dataset.delay=i*100; obs.observe(el); });
+
+/* ===== SKILL BARS ===== */
+const barObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.querySelectorAll('.bar-fill').forEach(b => {
+        setTimeout(() => b.style.width = b.dataset.w + '%', 300);
+      });
+      barObs.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.2 });
+document.querySelectorAll('.skills-layout').forEach(el => barObs.observe(el));
+
+/* ===== PARALLAX HERO ===== */
+window.addEventListener('scroll', () => {
+  const y = window.scrollY;
+  const hc = document.querySelector('.hero-name');
+  if (hc && y < window.innerHeight) hc.style.transform = `translateY(${y * 0.18}px)`;
+});
+
+/* ===== TYPING EFFECT on eyebrow ===== */
+// subtle glitch on hero name
+const glitchEl = document.querySelector('.hero-name');
+setInterval(() => {
+  if (Math.random() > 0.94) {
+    glitchEl.style.textShadow = `${(Math.random()-0.5)*6}px 0 rgba(56,189,248,0.6), ${(Math.random()-0.5)*6}px 0 rgba(167,139,250,0.6)`;
+    setTimeout(() => glitchEl.style.textShadow = 'none', 80);
+  }
+}, 2500);
+</script>
+</body>
+</html>
