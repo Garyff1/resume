@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>张乐康 · AI × 音乐教育科技</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Noto+Sans+SC:wght@300;400;500&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #05080f;
+  --bg2: #080d18;
+  --surface: #0c1220;
+  --surface2: #101828;
+  --b: rgba(56,189,248,0.1);
+  --cyan: #38bdf8;
+  --cyan2: rgba(56,189,248,0.6);
+  --violet: #a78bfa;
+  --violet2: rgba(167,139,250,0.6);
+  --emerald: #34d399;
+  --rose: #fb7185;
+  --amber: #fbbf24;
+  --text: #e2e8f0;
+  --muted: #4b6280;
+  --muted2: #8ba3be;
+  --white: #f0f6ff;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-serif;font-weight:300;overflow-x:hidden;cursor:none}
+
+/* CURSOR */
+#cur{width:8px;height:8px;background:var(--cyan);border-radius:50%;position:fixed;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);box-shadow:0 0 16px var(--cyan),0 0 40px rgba(56,189,248,0.3);transition:transform .15s,background .2s,box-shadow .2s}
+#cur-r{width:36px;height:36px;border:1px solid rgba(56,189,248,0.4);border-radius:50%;position:fixed;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:width .3s,height .3s}
+
+/* CANVAS LAYERS */
+#c-bg,#c-notes,#c-staff{position:fixed;inset:0;pointer-events:none}
+#c-bg{z-index:0;opacity:0.7}
+#c-notes{z-index:1;opacity:0.85}
+#c-staff{z-index:2;opacity:0.5}
+
+/* NOISE */
+body::after{content:'';position:fixed;inset:0;z-index:3;pointer-events:none;
+background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+opacity:.4}
+
+/* PROGRESS */
+#prog{position:fixed;top:0;left:0;height:2px;z-index:600;
+background:linear-gradient(90deg,var(--violet),var(--cyan),var(--emerald));width:0;
+box-shadow:0 0 12px var(--cyan)}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:500;padding:.85rem 2.5rem;
+display:flex;justify-content:space-between;align-items:center;transition:background .4s}
+nav.scr{background:rgba(5,8,15,.88);backdrop-filter:blur(20px);border-bottom:1px solid rgba(56,189,248,.08)}
+.nl{font-family:'Syne',sans-serif;font-weight:800;font-size:1rem;letter-spacing:.08em;
+background:linear-gradient(135deg,var(--cyan),var(--violet));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.nr{display:flex;gap:1.8rem;list-style:none}
+.nr a{font-family:'JetBrains Mono',monospace;font-size:.68rem;letter-spacing:.15em;
+color:var(--muted);text-decoration:none;transition:color .2s}
+.nr a:hover{color:var(--cyan)}
+
+/* ═══ HERO ═══ */
+.hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;
+position:relative;z-index:4;padding:7rem 2rem 5rem;text-align:center;overflow:hidden}
+
+/* Holographic rings */
+.holo-ring{position:absolute;border-radius:50%;pointer-events:none;animation:holo-spin linear infinite}
+.holo-ring:nth-child(1){width:600px;height:600px;border:1px solid rgba(56,189,248,0.06);top:50%;left:50%;
+transform:translate(-50%,-50%);animation-duration:30s}
+.holo-ring:nth-child(2){width:420px;height:420px;border:1px solid rgba(167,139,250,0.07);top:50%;left:50%;
+transform:translate(-50%,-50%);animation-duration:22s;animation-direction:reverse}
+.holo-ring:nth-child(3){width:260px;height:260px;border:1px solid rgba(52,211,153,0.06);top:50%;left:50%;
+transform:translate(-50%,-50%);animation-duration:16s}
+@keyframes holo-spin{from{transform:translate(-50%,-50%) rotate(0deg)}to{transform:translate(-50%,-50%) rotate(360deg)}}
+
+.eyebrow{display:inline-flex;align-items:center;gap:.6rem;
+border:1px solid rgba(56,189,248,.25);background:rgba(56,189,248,.05);
+padding:.3rem 1.1rem;border-radius:100px;
+font-family:'JetBrains Mono',monospace;font-size:.7rem;letter-spacing:.18em;color:var(--cyan);
+opacity:0;animation:fup .6s ease .1s forwards}
+.dot-live{width:7px;height:7px;border-radius:50%;background:var(--emerald);
+animation:livepulse 1.8s ease infinite;box-shadow:0 0 8px var(--emerald)}
+@keyframes livepulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.6)}}
+
+.hero-name{font-family:'Syne',sans-serif;font-weight:800;
+font-size:clamp(3.8rem,12vw,9rem);letter-spacing:-.03em;line-height:.95;
+text-transform:uppercase;position:relative;
+opacity:0;animation:fup .9s cubic-bezier(.16,1,.3,1) .25s forwards}
+.n-glow{background:linear-gradient(135deg,var(--white) 0%,var(--cyan) 40%,var(--violet) 100%);
+-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+filter:drop-shadow(0 0 35px rgba(56,189,248,.35))}
+.n-out{-webkit-text-stroke:1.5px rgba(167,139,250,.3);-webkit-text-fill-color:transparent}
+
+.hero-en{font-family:'JetBrains Mono',monospace;font-size:clamp(.7rem,1.8vw,.9rem);
+letter-spacing:.2em;color:var(--muted2);margin-top:.4rem;
+opacity:0;animation:fup .7s ease .45s forwards}
+.hero-en .a{color:var(--cyan)}
+
+/* Animated divider */
+.adiv{position:relative;margin:2rem auto;width:0;height:1px;
+animation:expandW .9s ease .65s forwards;overflow:visible}
+@keyframes expandW{to{width:min(480px,80vw)}}
+.adiv::after{content:'';position:absolute;inset:0;
+background:linear-gradient(90deg,transparent,var(--cyan),var(--violet),transparent);
+box-shadow:0 0 20px rgba(56,189,248,.4)}
+/* Music note icon on divider */
+.adiv-note{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+width:28px;height:28px;background:var(--bg);border:1px solid rgba(56,189,248,.3);
+border-radius:50%;display:flex;align-items:center;justify-content:center;
+font-size:.9rem;color:var(--cyan);animation:noterot 6s linear infinite}
+@keyframes noterot{0%,100%{transform:translate(-50%,-50%) rotate(-10deg)}50%{transform:translate(-50%,-50%) rotate(10deg)}}
+
+.hero-desc{max-width:540px;color:var(--muted2);font-size:clamp(.78rem,2vw,.9rem);
+line-height:2;letter-spacing:.02em;opacity:0;animation:fup .7s ease .85s forwards}
+.hero-desc strong{color:var(--cyan);font-weight:500}
+
+.hero-contacts{display:flex;flex-wrap:wrap;justify-content:center;gap:.8rem;
+margin-top:2.2rem;opacity:0;animation:fup .7s ease 1.05s forwards}
+.hc-item{display:flex;align-items:center;gap:.5rem;
+background:var(--surface);border:1px solid rgba(56,189,248,.12);border-radius:8px;
+padding:.5rem 1.1rem;font-family:'JetBrains Mono',monospace;font-size:.75rem;color:var(--muted2);
+transition:all .3s;position:relative;overflow:hidden}
+.hc-item::before{content:'';position:absolute;inset:0;
+background:linear-gradient(135deg,rgba(56,189,248,.06),transparent);
+opacity:0;transition:opacity .3s}
+.hc-item:hover{border-color:rgba(56,189,248,.4);color:var(--cyan);box-shadow:0 0 20px rgba(56,189,248,.12)}
+.hc-item:hover::before{opacity:1}
+
+.kw-row{display:flex;flex-wrap:wrap;justify-content:center;gap:.55rem;
+margin-top:1.6rem;opacity:0;animation:fup .7s ease 1.2s forwards}
+.kw{font-family:'JetBrains Mono',monospace;font-size:.65rem;letter-spacing:.1em;
+padding:.22rem .7rem;border-radius:4px;border:1px solid;transition:transform .2s,box-shadow .2s}
+.kw:hover{transform:translateY(-2px)}
+.kc{border-color:rgba(56,189,248,.3);color:var(--cyan);background:rgba(56,189,248,.06)}
+.kc:hover{box-shadow:0 0 14px rgba(56,189,248,.2)}
+.kv{border-color:rgba(167,139,250,.3);color:var(--violet);background:rgba(167,139,250,.06)}
+.kv:hover{box-shadow:0 0 14px rgba(167,139,250,.2)}
+.ke{border-color:rgba(52,211,153,.3);color:var(--emerald);background:rgba(52,211,153,.06)}
+.ke:hover{box-shadow:0 0 14px rgba(52,211,153,.2)}
+
+/* Stats */
+.stats{display:flex;gap:3rem;flex-wrap:wrap;justify-content:center;
+margin-top:2.8rem;opacity:0;animation:fup .7s ease 1.35s forwards}
+.stat{text-align:center;position:relative}
+.stat+.stat::before{content:'';position:absolute;left:-1.5rem;top:20%;bottom:20%;
+width:1px;background:rgba(56,189,248,.15)}
+.stat-n{font-family:'Syne',sans-serif;font-weight:800;
+font-size:clamp(2rem,5vw,3rem);line-height:1;
+background:linear-gradient(135deg,var(--cyan),var(--violet));
+-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.stat-l{font-family:'JetBrains Mono',monospace;font-size:.6rem;
+letter-spacing:.15em;color:var(--muted);margin-top:.25rem}
+
+.scroll-cue{position:absolute;bottom:2.5rem;left:50%;transform:translateX(-50%);
+display:flex;flex-direction:column;align-items:center;gap:.5rem;
+font-family:'JetBrains Mono',monospace;font-size:.58rem;letter-spacing:.2em;color:var(--muted);
+opacity:0;animation:fadeIn 1s ease 2.2s forwards}
+.sc-line{width:1px;height:48px;
+background:linear-gradient(to bottom,var(--cyan),transparent);
+animation:scpulse 1.8s ease infinite}
+@keyframes scpulse{0%,100%{opacity:.4;transform:scaleY(1)}50%{opacity:1;transform:scaleY(1.15)}}
+
+/* ═══ LAYOUT ═══ */
+.wrap{max-width:1080px;margin:0 auto;padding:0 2rem;position:relative;z-index:4}
+section{padding:5.5rem 0;border-bottom:1px solid rgba(56,189,248,.07)}
+section:last-child{border-bottom:none}
+
+.slabel{display:flex;align-items:center;gap:1rem;margin-bottom:3rem}
+.snum{font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--cyan);opacity:.45}
+.stitle{font-family:'Syne',sans-serif;font-weight:700;font-size:1.45rem;color:var(--white);letter-spacing:.02em}
+.sline{flex:1;height:1px;background:linear-gradient(90deg,rgba(56,189,248,.15),transparent)}
+
+/* ═══ INTRO ═══ */
+.intro-card{background:linear-gradient(135deg,rgba(56,189,248,.05),rgba(167,139,250,.04));
+border:1px solid rgba(56,189,248,.18);border-radius:16px;padding:2.5rem;position:relative;overflow:hidden;
+opacity:0;transform:translateY(22px)}
+.intro-card.v{animation:revUp .7s ease forwards}
+.intro-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
+background:linear-gradient(90deg,var(--cyan),var(--violet),var(--emerald))}
+/* Animated corner brackets */
+.intro-card::after{content:'[ AI × MUSIC ]';position:absolute;bottom:1.2rem;right:1.5rem;
+font-family:'JetBrains Mono',monospace;font-size:.65rem;letter-spacing:.15em;
+color:rgba(56,189,248,.15)}
+.intro-txt{font-size:.88rem;line-height:2.1;color:var(--muted2)}
+.intro-txt strong{color:var(--cyan);font-weight:500}
+.intro-txt em{color:var(--violet);font-style:normal;font-weight:500}
+
+/* ═══ PROJECTS ═══ */
+.proj-grid{display:grid;gap:1.5rem}
+.pcard{background:var(--surface);border:1px solid rgba(56,189,248,.09);border-radius:14px;
+padding:2rem;position:relative;overflow:hidden;
+opacity:0;transform:translateY(22px);transition:transform .3s,border-color .3s,box-shadow .3s}
+.pcard.v{animation:revUp .65s ease forwards}
+.pcard::before{content:'';position:absolute;inset:0;
+background:linear-gradient(135deg,rgba(56,189,248,.03),transparent 60%);
+opacity:0;transition:opacity .4s}
+.pcard:hover{transform:translateY(-5px)!important;border-color:rgba(56,189,248,.3);
+box-shadow:0 0 40px rgba(56,189,248,.12),0 20px 40px rgba(0,0,0,.3)}
+.pcard:hover::before{opacity:1}
+.pcard.vc:hover{border-color:rgba(167,139,250,.3);
+box-shadow:0 0 40px rgba(167,139,250,.12),0 20px 40px rgba(0,0,0,.3)}
+
+/* Glowing top accent */
+.pcard-accent{position:absolute;top:0;left:0;right:0;height:2px;
+background:linear-gradient(90deg,var(--cyan),var(--violet));
+box-shadow:0 0 12px rgba(56,189,248,.5)}
+.pcard-accent.v2{background:linear-gradient(90deg,var(--violet),var(--rose))}
+
+.phead{display:flex;gap:1rem;align-items:flex-start;margin-bottom:1rem}
+.pico{width:50px;height:50px;background:var(--surface2);border:1px solid rgba(56,189,248,.12);
+border-radius:10px;display:flex;align-items:center;justify-content:center;
+font-size:1.4rem;flex-shrink:0;transition:border-color .3s,box-shadow .3s}
+.pcard:hover .pico{border-color:rgba(56,189,248,.35);box-shadow:0 0 16px rgba(56,189,248,.15)}
+.pmeta{flex:1}
+.ptitle{font-family:'Syne',sans-serif;font-weight:700;font-size:1.02rem;color:var(--white);
+display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.25rem}
+.pbadge{font-family:'JetBrains Mono',monospace;font-size:.6rem;letter-spacing:.08em;
+padding:.12rem .5rem;border-radius:4px;background:rgba(56,189,248,.1);
+color:var(--cyan);border:1px solid rgba(56,189,248,.2)}
+.pbadge.vb{background:rgba(167,139,250,.1);color:var(--violet);border-color:rgba(167,139,250,.2)}
+.pperiod{font-family:'JetBrains Mono',monospace;font-size:.66rem;color:var(--muted)}
+.pdesc{font-size:.82rem;line-height:1.9;color:var(--muted2);margin-bottom:.8rem}
+.pbullets{list-style:none;margin-bottom:.9rem}
+.pbullets li{padding-left:1.2rem;position:relative;
+font-size:.8rem;color:var(--muted2);line-height:1.85;margin-bottom:.15rem}
+.pbullets li::before{content:'›';position:absolute;left:0;color:var(--cyan)}
+.pbullets.vb li::before{color:var(--violet)}
+.ptags{display:flex;flex-wrap:wrap;gap:.45rem}
+.ptag{font-family:'JetBrains Mono',monospace;font-size:.62rem;
+padding:.15rem .55rem;border-radius:4px;
+background:var(--surface2);border:1px solid rgba(56,189,248,.08);color:var(--muted2)}
+
+/* ═══ SKILLS ═══ */
+.skills-wrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.5rem}
+.sg{background:var(--surface);border:1px solid rgba(56,189,248,.09);border-radius:12px;padding:1.6rem;
+opacity:0;transform:translateY(18px);transition:border-color .3s}
+.sg.v{animation:revUp .6s ease forwards}
+.sg:hover{border-color:rgba(56,189,248,.18)}
+.sg-t{font-family:'JetBrains Mono',monospace;font-size:.7rem;letter-spacing:.15em;
+color:var(--cyan);margin-bottom:1.2rem;display:flex;align-items:center;gap:.5rem}
+.sg-t::after{content:'';flex:1;height:1px;background:rgba(56,189,248,.12)}
+.sg-t.vt{color:var(--violet)} .sg-t.et{color:var(--emerald)}
+
+.skrow{margin-bottom:.85rem}
+.skbar-meta{display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:.3rem}
+.skbar-name{color:var(--text)}
+.skbar-pct{font-family:'JetBrains Mono',monospace;font-size:.68rem;color:var(--muted)}
+.bar-bg{height:3px;background:rgba(255,255,255,.04);border-radius:10px;overflow:hidden}
+.bar-f{height:100%;border-radius:10px;width:0;transition:width 1.4s cubic-bezier(.16,1,.3,1);
+background:linear-gradient(90deg,var(--cyan),var(--violet))}
+.bar-f.vb{background:linear-gradient(90deg,var(--violet),var(--rose))}
+.bar-f.eb{background:linear-gradient(90deg,var(--emerald),var(--cyan))}
+
+.cert-row{display:flex;flex-wrap:wrap;gap:.7rem;margin-top:2rem}
+.cert{display:flex;align-items:center;gap:.5rem;background:var(--surface);
+border:1px solid rgba(56,189,248,.09);border-radius:8px;padding:.48rem 1rem;
+font-size:.75rem;color:var(--muted2);transition:all .3s}
+.cert:hover{border-color:rgba(167,139,250,.35);color:var(--violet)}
+
+/* ═══ TIMELINE ═══ */
+.tl{position:relative;padding-left:2rem}
+.tl::before{content:'';position:absolute;left:0;top:6px;bottom:0;width:1px;
+background:linear-gradient(to bottom,var(--cyan),rgba(56,189,248,.03))}
+
+.ti{position:relative;padding-bottom:3rem;opacity:0;transform:translateX(-16px)}
+.ti.v{animation:slideR .6s ease forwards}
+@keyframes slideR{to{opacity:1;transform:translateX(0)}}
+.ti::before{content:'';position:absolute;left:-2.35rem;top:5px;
+width:12px;height:12px;background:var(--bg);border:2px solid var(--cyan);
+border-radius:50%;box-shadow:0 0 10px rgba(56,189,248,.35);transition:all .3s}
+.ti:hover::before{background:var(--cyan);transform:scale(1.35)}
+
+.thead{display:flex;flex-wrap:wrap;align-items:baseline;gap:.4rem 1rem;margin-bottom:.7rem}
+.tc{font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;color:var(--white)}
+.tr{font-family:'JetBrains Mono',monospace;font-size:.66rem;
+padding:.14rem .52rem;border-radius:4px;background:rgba(56,189,248,.1);
+color:var(--cyan);border:1px solid rgba(56,189,248,.22)}
+.tp{font-family:'JetBrains Mono',monospace;font-size:.66rem;color:var(--muted);margin-left:auto}
+.tb{font-size:.8rem;color:var(--muted2);line-height:1.9}
+.tb ul{list-style:none;margin-top:.4rem}
+.tb li{padding-left:1.2rem;position:relative;margin-bottom:.15rem}
+.tb li::before{content:'›';position:absolute;left:0;color:var(--cyan)}
+.ach-row{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:.8rem}
+.ach{display:flex;align-items:center;gap:.4rem;
+background:linear-gradient(135deg,rgba(52,211,153,.08),rgba(56,189,248,.08));
+border:1px solid rgba(52,211,153,.25);border-radius:100px;
+padding:.28rem .85rem;font-size:.74rem;color:var(--emerald);font-weight:500}
+
+/* ═══ EDUCATION ═══ */
+.edu-card{background:linear-gradient(135deg,var(--surface),var(--surface2));
+border:1px solid rgba(167,139,250,.2);border-radius:16px;padding:2.5rem;
+position:relative;overflow:hidden;opacity:0;transform:translateY(22px)}
+.edu-card.v{animation:revUp .7s ease forwards}
+.edu-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
+background:linear-gradient(90deg,var(--violet),var(--cyan))}
+.edu-deco{position:absolute;right:2rem;top:1.5rem;
+font-size:1.6rem;letter-spacing:.5rem;color:rgba(167,139,250,.1);
+animation:edudeco 4s ease-in-out infinite alternate}
+@keyframes edudeco{from{transform:translateY(0) rotate(-4deg)}to{transform:translateY(-8px) rotate(4deg)}}
+.edu-school{font-family:'Syne',sans-serif;font-weight:800;font-size:1.5rem;
+background:linear-gradient(135deg,var(--violet),var(--cyan));
+-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:.2rem}
+.edu-deg{font-family:'JetBrains Mono',monospace;font-size:.78rem;color:var(--muted2);margin-bottom:.3rem}
+.edu-rank{display:inline-block;background:linear-gradient(90deg,var(--amber),#f97316);
+-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+font-weight:700;font-size:.95rem;margin-bottom:1.3rem}
+.chips{display:flex;flex-wrap:wrap;gap:.45rem;margin-bottom:1.3rem}
+.chip{font-family:'JetBrains Mono',monospace;font-size:.66rem;
+padding:.18rem .62rem;border-radius:4px;
+background:rgba(167,139,250,.07);border:1px solid rgba(167,139,250,.18);color:var(--violet)}
+.honors{display:flex;flex-wrap:wrap;gap:.75rem}
+.hon{display:flex;align-items:center;gap:.4rem;font-size:.76rem;color:var(--muted2)}
+.hon-i{color:var(--amber)}
+
+/* ═══ ACTIVITY ═══ */
+.act-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem}
+.act{background:var(--surface);border:1px solid rgba(56,189,248,.08);border-radius:10px;
+padding:1.4rem;opacity:0;transform:translateY(14px)}
+.act.v{animation:revUp .5s ease forwards}
+.act:hover{border-color:rgba(52,211,153,.2)}
+.act-t{font-family:'Syne',sans-serif;font-weight:700;font-size:.9rem;color:var(--white);
+margin-bottom:.5rem;display:flex;align-items:center;gap:.5rem}
+.act p{font-size:.77rem;color:var(--muted2);line-height:1.85}
+
+/* ═══ CONTACT ═══ */
+.ct{text-align:center;padding:7rem 2rem;position:relative;z-index:4}
+.ct-glow{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+width:700px;height:350px;pointer-events:none;
+background:radial-gradient(ellipse,rgba(56,189,248,.05) 0%,transparent 70%)}
+.ct-title{font-family:'Syne',sans-serif;font-weight:800;
+font-size:clamp(2rem,6vw,4rem);color:var(--white);
+text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem}
+.ct-sub{font-family:'JetBrains Mono',monospace;font-size:.75rem;
+letter-spacing:.2em;color:var(--muted);margin-bottom:2.5rem}
+.ct-links{display:flex;flex-wrap:wrap;justify-content:center;gap:1rem}
+.cl{display:flex;align-items:center;gap:.6rem;background:var(--surface);
+border:1px solid rgba(56,189,248,.1);border-radius:10px;padding:.72rem 1.5rem;
+font-family:'JetBrains Mono',monospace;font-size:.78rem;color:var(--muted2);
+text-decoration:none;transition:all .3s;position:relative;overflow:hidden}
+.cl::after{content:'';position:absolute;inset:0;
+background:linear-gradient(135deg,rgba(56,189,248,.06),transparent);opacity:0;transition:opacity .3s}
+.cl:hover{border-color:rgba(56,189,248,.4);color:var(--cyan);
+box-shadow:0 0 30px rgba(56,189,248,.15);transform:translateY(-3px)}
+.cl:hover::after{opacity:1}
+
+/* ANIM UTILS */
+@keyframes fup{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{to{opacity:1}}
+@keyframes revUp{to{opacity:1;transform:translateY(0)}}
+
+/* HOVER glow on interactive */
+a,button,.pcard,.ti,.sg,.act{cursor:none}
+</style>
+</head>
+<body>
+
+<!-- Three canvas layers -->
+<canvas id="c-bg"></canvas>
+<canvas id="c-notes"></canvas>
+<canvas id="c-staff"></canvas>
+
+<div id="cur"></div>
+<div id="cur-r"></div>
+<div id="prog"></div>
+
+<nav id="nav">
+  <div class="nl">ZLK</div>
+  <ul class="nr">
+    <li><a href="#projects">PROJECTS</a></li>
+    <li><a href="#skills">SKILLS</a></li>
+    <li><a href="#work">WORK</a></li>
+    <li><a href="#edu">EDU</a></li>
+    <li><a href="#ct">CONTACT</a></li>
+  </ul>
+</nav>
+
+<!-- ═══════════ HERO ═══════════ -->
+<section class="hero">
+  <div class="holo-ring"></div>
+  <div class="holo-ring"></div>
+  <div class="holo-ring"></div>
+
+  <div class="eyebrow"><span class="dot-live"></span>AVAILABLE · 深圳 · 2026</div>
+
+  <h1 class="hero-name">
+    <span class="n-glow">张</span><span class="n-glow">乐</span><span class="n-glow">康</span>
+  </h1>
+
+  <div class="hero-en"><span class="a">AI PRODUCT</span> &nbsp;×&nbsp; MUSIC EDUCATION TECH</div>
+
+  <div class="adiv"><div class="adiv-note">♪</div></div>
+
+  <p class="hero-desc">
+    音乐学（师范）本科 · 专业<strong>前 10%</strong><br>
+    以<strong>真实教学与情绪场景</strong>驱动产品，借助 <em>Codex · Claude</em> AI 工具<br>
+    独立推进 <strong>ChordLab</strong> 与 <strong>吐草</strong> 两款应用从0到1的完整迭代
+  </p>
+
+  <div class="hero-contacts">
+    <div class="hc-item">📞 13423759790</div>
+    <div class="hc-item">✉ 673819340@qq.com</div>
+    <div class="hc-item">📍 深圳 · 期望 6-8K</div>
+  </div>
+
+  <div class="kw-row">
+    <span class="kw kc">AI 产品助理</span>
+    <span class="kw kv">教育科技</span>
+    <span class="kw kc">AI 应用协作</span>
+    <span class="kw ke">音乐理论工具</span>
+    <span class="kw kv">用户需求分析</span>
+    <span class="kw ke">产品运营</span>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-n" id="s1">0</div><div class="stat-l">YEARS EXP</div></div>
+    <div class="stat"><div class="stat-n" id="s2">0</div><div class="stat-l">AI PROJECTS</div></div>
+    <div class="stat"><div class="stat-n" id="s3">0</div><div class="stat-l">TOP % MAJOR</div></div>
+    <div class="stat"><div class="stat-n" id="s4">0</div><div class="stat-l">STUDENT +PTS</div></div>
+  </div>
+
+  <div class="scroll-cue"><div class="sc-line"></div>SCROLL</div>
+</section>
+
+<div class="wrap">
+
+<!-- 个人亮点 -->
+<section>
+  <div class="slabel"><span class="snum">00</span><span class="stitle">个人亮点</span><div class="sline"></div></div>
+  <div class="intro-card">
+    <p class="intro-txt">
+      从 <strong>广东技术师范大学音乐学（师范）本科</strong>（专业前10%）出发，精通声乐、钢琴即兴伴奏、多声部和声写作，具备真实教学现场的课程设计与学生管理经验。<br><br>
+      2026 年起，借助 <strong>Codex · Claude</strong> 等 AI 编程工具，独立推进 <em>ChordLab</em>（音乐理论工具 App）与 <em>吐草</em>（匿名情绪表达小程序）两款产品，形成「需求文档 → 功能拆解 → 代码生成 → 运行验证 → 问题修复」的完整迭代意识。<br><br>
+      拥有教学、运营、销售与客户服务多线经历，能够将<strong>一线用户反馈精准转化为产品优化方向</strong>，适合 AI 产品助理、教育科技运营、AI 应用协作等岗位。
+    </p>
+  </div>
+</section>
+
+<!-- 项目经历 -->
+<section id="projects">
+  <div class="slabel"><span class="snum">01</span><span class="stitle">项目经历</span><div class="sline"></div></div>
+  <div class="proj-grid">
+
+    <div class="pcard">
+      <div class="pcard-accent"></div>
+      <div class="phead">
+        <div class="pico">🎵</div>
+        <div class="pmeta">
+          <div class="ptitle">ChordLab 音乐理论工具
+            <span class="pbadge">独立开发者</span>
+            <span class="pbadge">AI 协作</span>
+          </div>
+          <div class="pperiod">2026 — 至今 · Android · Flutter</div>
+        </div>
+      </div>
+      <div class="pdesc">面向中级业余音乐学习者与在校音乐生，完成从0到1的产品设计与 AI 辅助开发实践，是结合专业音乐背景与 AI 工具落地的代表项目。</div>
+      <ul class="pbullets">
+        <li>完成用户场景梳理、功能架构、页面流程与核心交互设计</li>
+        <li>通过 Codex / Claude 推进核心模块实现与调试，形成完整迭代闭环</li>
+        <li>功能覆盖：和弦查询（钢琴/吉他图示 + 音频播放）、音程参考、音阶/调式、听觉训练</li>
+        <li>节奏工具引入<strong style="color:var(--cyan)">可视化节奏型展示</strong>与<strong style="color:var(--cyan)">麦克风拍击准确度检测</strong>差异化功能</li>
+        <li>坚持无广告、无弹窗、无强制注册的低干扰核心体验</li>
+      </ul>
+      <div class="ptags">
+        <span class="ptag">Flutter</span><span class="ptag">AI编程协作</span><span class="ptag">音乐理论</span>
+        <span class="ptag">产品设计</span><span class="ptag">需求分析</span><span class="ptag">Android</span>
+      </div>
+    </div>
+
+    <div class="pcard vc">
+      <div class="pcard-accent v2"></div>
+      <div class="phead">
+        <div class="pico">🌱</div>
+        <div class="pmeta">
+          <div class="ptitle">吐草 · 匿名情绪表达小程序
+            <span class="pbadge vb">独立开发者</span>
+            <span class="pbadge vb">微信小程序</span>
+          </div>
+          <div class="pperiod">2026 — 至今 · 微信小程序</div>
+        </div>
+      </div>
+      <div class="pdesc">定位「轻表达、轻互动、轻发泄、轻成长」，将音乐治疗项目中的情绪疏导经验转化为产品设计思路。</div>
+      <ul class="pbullets vb">
+        <li>独立完成产品定位、信息架构与功能拆解</li>
+        <li>借助 AI 工具推进开发、调试与迭代全流程</li>
+        <li>围绕弱社交互动与匿名安全感构建核心使用场景</li>
+        <li>将音乐治疗中一对一情绪沟通经验转化为交互设计</li>
+      </ul>
+      <div class="ptags">
+        <span class="ptag">微信小程序</span><span class="ptag">情绪设计</span>
+        <span class="ptag">AI协作开发</span><span class="ptag">产品运营</span><span class="ptag">用户研究</span>
+      </div>
+    </div>
+
+    <div class="pcard">
+      <div class="phead">
+        <div class="pico">🎶</div>
+        <div class="pmeta">
+          <div class="ptitle">音乐治疗对社工群体心理的影响 <span class="pbadge">项目组员</span></div>
+          <div class="pperiod">2020.11 — 2021.05</div>
+        </div>
+      </div>
+      <ul class="pbullets">
+        <li>通过音乐辅导心理宣泄人群，进行疏导缓解压力</li>
+        <li>一对一交流情绪状态，演奏适合当下的缓压曲目</li>
+        <li>积累音乐 × 情绪 × 用户沟通第一手实践经验，直接转化为「吐草」设计思路</li>
+      </ul>
+    </div>
+
+  </div>
+</section>
+
+<!-- 核心技能 -->
+<section id="skills">
+  <div class="slabel"><span class="snum">02</span><span class="stitle">核心技能</span><div class="sline"></div></div>
+  <div class="skills-wrap">
+
+    <div class="sg">
+      <div class="sg-t">// AI 与产品</div>
+      <div class="skrow"><div class="skbar-meta"><span class="skbar-name">AI 编程协作（Codex/Claude）</span><span class="skbar-pct">82%</span></div><div class="bar-bg"><div class="bar-f" data-w="82"></div></div></div>
+      <div class="skrow"><div class="skbar-meta"><span class="skbar-name">需求分析 · 功能拆解</span><span class="skbar-pct">85%</span></div><div class="bar-bg"><div class="bar-f" data-w="85"></div></div></div>
+      <div class="skrow"><div class="skbar-meta"><span class="skbar-name">产品流程设计</span><span class="skbar-pct">80%</span></div><div class="bar-bg"><div class="bar-f" data-w="80"></div></div></div>
+      <div class="skrow"><div class="skbar-meta"><span class="skbar-name">微信小程序开发协作</span><span class="skbar-pct">72%</span></div><div class="bar-bg"><div class="bar-f" data-w="72"></div></div></div>
+    </div>
+
+    <div class="sg">
+      <div class="sg-t vt">// 音乐专业</div>
+      <div class="skrow"><div class="skbar-meta"><span class="skbar-name">声乐演唱</span><span class="skbar-pct">90%</span></div><div class="bar-bg"><div class="bar-f vb" data-w="90"></div></div></div>
+      <div class="skrow"><div class="skbar-meta"><span class="skbar-name">钢琴即兴伴奏</span><span class="skbar-pct">85%</span></div><div class="bar-bg"><div class="bar-f vb" data-w="85"></div></div></div>
+      <div class="skrow"><div class="skbar-meta"><span class="skbar-name">音乐理论 · 和声写作</span><span class="skbar-pct">83%</span></div><div class="bar-bg"><div class="bar-f vb" data-w="83"></div></div></div>
+      <div class="skrow"><div class="skbar-meta"><span class="skbar-name">视唱练耳 · 课堂设计</span><span class="skbar-pct">88%</span></div><div class="bar-bg"><div class="bar-f vb" data-w="88"></div></div></div>
+    </div>
+
+    <div class="sg">
+      <div class="sg-t et">// 通用能力</div>
+      <div class="skrow"><div class="skbar-meta"><span class="skbar-name">用户沟通 · 销售转化</span><span class="skbar-pct">88%</span></div><div class="bar-bg"><div class="bar-f eb" data-w="88"></div></div></div>
+      <div class="skrow"><div class="skbar-meta"><span class="skbar-name">教学评估 · 策略调整</span><span class="skbar-pct">85%</span></div><div class="bar-bg"><div class="bar-f eb" data-w="85"></div></div></div>
+      <div class="skrow"><div class="skbar-meta"><span class="skbar-name">课件制作 · 活动组织</span><span class="skbar-pct">78%</span></div><div class="bar-bg"><div class="bar-f eb" data-w="78"></div></div></div>
+      <div class="skrow"><div class="skbar-meta"><span class="skbar-name">外呼回访 · 需求记录</span><span class="skbar-pct">80%</span></div><div class="bar-bg"><div class="bar-f eb" data-w="80"></div></div></div>
+    </div>
+
+  </div>
+  <div class="cert-row">
+    <div class="cert">🏅 高中音乐教师资格证</div>
+    <div class="cert">💻 计算机二级证书</div>
+    <div class="cert">🌐 英语应用能力 A级</div>
+    <div class="cert">🗣️ 普通话二级甲等</div>
+    <div class="cert">🚗 C1 类驾照</div>
+  </div>
+</section>
+
+<!-- 工作经历 -->
+<section id="work">
+  <div class="slabel"><span class="snum">03</span><span class="stitle">工作经历</span><div class="sline"></div></div>
+  <div class="tl">
+
+    <div class="ti">
+      <div class="thead">
+        <span class="tc">深圳市人力资本（集团）有限公司</span>
+        <span class="tr">运营商专员</span>
+        <span class="tp">2025.11 — 2026.04</span>
+      </div>
+      <div class="tb">
+        <p>代理中国电信营业厅，负责前台业务受理与客户服务。</p>
+        <ul>
+          <li>熟练处理 SIM 卡补换卡、套餐变更、宽带及增值业务等高频服务</li>
+          <li>积极推介套餐、宽带与增值业务，锻炼陌生客户沟通与销售转化能力</li>
+          <li>负责客户主动外呼回访，具备良好的逻辑梳理和情绪把控能力</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="ti">
+      <div class="thead">
+        <span class="tc">碧波中小学教育培训中心</span>
+        <span class="tr">数学教师</span>
+        <span class="tp">2024.07 — 2025.11</span>
+      </div>
+      <div class="tb">
+        <ul>
+          <li>面向小学至初中学生制定个性化教学方案，定期评估进度并调整策略</li>
+          <li>深入讲解数学复杂概念，设计有效教学策略提升学习兴趣与成绩</li>
+        </ul>
+        <div class="ach-row">
+          <span class="ach">🏆 初中生数学年级第一 · 满分100分</span>
+          <span class="ach">📈 六年级学生 49分 → 93分</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="ti">
+      <div class="thead">
+        <span class="tc">音乐教育相关经历</span>
+        <span class="tr">音乐教师 / 实习教师</span>
+        <span class="tp">2023.03 — 2024.08</span>
+      </div>
+      <div class="tb">
+        <ul>
+          <li>广州乐享音教（2023.03-2024.03）：音乐理论、视唱练耳、乐器演奏课程教学，定制个性化方案</li>
+          <li>乐昌万紫千红（2024.06-2024.08）：短期音乐课程设计、音乐会组织与家校沟通</li>
+          <li>天健学校（2023.10-2023.12）：集备讨论、教案撰写、说课试讲、听课记录与教学反思</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- 教育背景 -->
+<section id="edu">
+  <div class="slabel"><span class="snum">04</span><span class="stitle">教育背景</span><div class="sline"></div></div>
+  <div class="edu-card">
+    <div class="edu-deco">♩ ♪ ♫ ♬</div>
+    <div class="edu-school">广东技术师范大学</div>
+    <div class="edu-deg">本科 · 音乐学（师范）· 2020 — 2024</div>
+    <div class="edu-rank">专业排名 · 前 10%</div>
+    <div class="chips">
+      <span class="chip">声乐演唱</span><span class="chip">钢琴即兴伴奏</span>
+      <span class="chip">多声部和声写作</span><span class="chip">曲式分析</span><span class="chip">音乐教育</span>
+    </div>
+    <div class="honors">
+      <span class="hon"><span class="hon-i">🥇</span>广东省"百歌颂中华"合唱比赛一等奖</span>
+      <span class="hon"><span class="hon-i">🏃</span>2022年校运会院级1000米男子第一名</span>
+      <span class="hon"><span class="hon-i">🎤</span>广东省多项大型合唱演出成员</span>
+    </div>
+  </div>
+</section>
+
+<!-- 活动经历 -->
+<section>
+  <div class="slabel"><span class="snum">05</span><span class="stitle">活动经历</span><div class="sline"></div></div>
+  <div class="act-grid">
+    <div class="act">
+      <div class="act-t">🎤 省级合唱演出</div>
+      <p>广东省河源市百年党成立群众音乐活动、第八届台湾岭南行合唱表演、省音乐协会"我们的新时代"合唱、东莞市"劳动者之歌"合唱成员。</p>
+    </div>
+    <div class="act">
+      <div class="act-t">🤝 志愿服务</div>
+      <p>校园食堂秩序维护（5小时）、核酸检测秩序员（16小时），协助辅导老年人及儿童核酸码使用，具备服务责任心与执行力。</p>
+    </div>
+  </div>
+</section>
+
+</div><!-- /wrap -->
+
+<!-- Contact -->
+<div class="ct" id="ct">
+  <div class="ct-glow"></div>
+  <div class="ct-title">OPEN TO WORK</div>
+  <div class="ct-sub">AI 产品助理 · 教育科技 · 深圳 · 6-8K</div>
+  <div class="ct-links">
+    <a class="cl" href="tel:13423759790"><span>📞</span>13423759790</a>
+    <a class="cl" href="mailto:673819340@qq.com"><span>✉</span>673819340@qq.com</a>
+    <a class="cl" href="#"><span>💬</span>Boss 直聘</a>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════
+   LAYER 1: BACKGROUND — particles + tech grid + radial glow
+════════════════════════════════════════ */
+const cbg = document.getElementById('c-bg');
+const ctxbg = cbg.getContext('2d');
+let W, H;
+
+function rsz() { W = cbg.width = cnotes.width = cstaff.width = window.innerWidth;
+                  H = cbg.height = cnotes.height = cstaff.height = window.innerHeight; }
+window.addEventListener('resize', rsz);
+
+// Particles
+const PTCLS = [];
+for (let i = 0; i < 70; i++) {
+  PTCLS.push({
+    x: Math.random(), y: Math.random(),
+    vx: (Math.random() - .5) * .00025, vy: (Math.random() - .5) * .00025,
+    r: Math.random() * 1.4 + .4,
+    col: [[56,189,248],[167,139,250],[52,211,153]][Math.floor(Math.random()*3)]
+  });
+}
+
+let T = 0;
+function drawBg() {
+  ctxbg.clearRect(0, 0, W, H);
+
+  // Radial glow center
+  const gr = ctxbg.createRadialGradient(W*.5, H*.35, 0, W*.5, H*.35, W*.55);
+  gr.addColorStop(0, 'rgba(56,189,248,0.03)');
+  gr.addColorStop(.5, 'rgba(167,139,250,0.02)');
+  gr.addColorStop(1, 'transparent');
+  ctxbg.fillStyle = gr;
+  ctxbg.fillRect(0, 0, W, H);
+
+  // Grid dots
+  const gs = 60;
+  for (let gx = 0; gx < W; gx += gs) {
+    for (let gy = 0; gy < H; gy += gs) {
+      const pulse = .5 + .5 * Math.sin(T * .4 + gx * .02 + gy * .015);
+      ctxbg.beginPath();
+      ctxbg.arc(gx, gy, .8, 0, Math.PI*2);
+      ctxbg.fillStyle = `rgba(56,189,248,${0.06 * pulse})`;
+      ctxbg.fill();
+    }
+  }
+
+  // Particles + connections
+  PTCLS.forEach(p => {
+    p.x += p.vx; p.y += p.vy;
+    if (p.x < 0) p.x = 1; if (p.x > 1) p.x = 0;
+    if (p.y < 0) p.y = 1; if (p.y > 1) p.y = 0;
+    ctxbg.beginPath();
+    ctxbg.arc(p.x*W, p.y*H, p.r, 0, Math.PI*2);
+    ctxbg.fillStyle = `rgba(${p.col.join(',')},0.45)`;
+    ctxbg.fill();
+    // Glow
+    ctxbg.beginPath();
+    ctxbg.arc(p.x*W, p.y*H, p.r*3, 0, Math.PI*2);
+    ctxbg.fillStyle = `rgba(${p.col.join(',')},0.06)`;
+    ctxbg.fill();
+  });
+  for (let i = 0; i < PTCLS.length; i++) {
+    for (let j = i+1; j < PTCLS.length; j++) {
+      const dx = (PTCLS[i].x - PTCLS[j].x)*W, dy = (PTCLS[i].y - PTCLS[j].y)*H;
+      const d = Math.sqrt(dx*dx+dy*dy);
+      if (d < 130) {
+        ctxbg.beginPath();
+        ctxbg.moveTo(PTCLS[i].x*W, PTCLS[i].y*H);
+        ctxbg.lineTo(PTCLS[j].x*W, PTCLS[j].y*H);
+        ctxbg.strokeStyle = `rgba(56,189,248,${.07*(1-d/130)})`;
+        ctxbg.lineWidth = .5;
+        ctxbg.stroke();
+      }
+    }
+  }
+
+  T += .016;
+  requestAnimationFrame(drawBg);
+}
+
+/* ════════════════════════════════════════
+   LAYER 2: FLOATING MUSIC NOTES — drift upward, fade, rotate
+════════════════════════════════════════ */
+const cnotes = document.getElementById('c-notes');
+const ctxn = cnotes.getContext('2d');
+
+const NOTES_CHARS = ['♩','♪','♫','♬','𝄞','𝄢','♭','♯','𝄐'];
+const NOTES = [];
+for (let i = 0; i < 28; i++) {
+  NOTES.push(spawnNote());
+}
+function spawnNote() {
+  return {
+    x: Math.random() * window.innerWidth,
+    y: window.innerHeight + Math.random() * 200,
+    vy: -(0.4 + Math.random() * 0.8),
+    vx: (Math.random() - .5) * 0.3,
+    rot: Math.random() * Math.PI * 2,
+    vrot: (Math.random() - .5) * 0.02,
+    size: 12 + Math.random() * 24,
+    alpha: 0,
+    life: 0,
+    maxLife: 180 + Math.random() * 200,
+    char: NOTES_CHARS[Math.floor(Math.random() * NOTES_CHARS.length)],
+    col: [[56,189,248],[167,139,250],[52,211,153],[251,191,36]][Math.floor(Math.random()*4)]
+  };
+}
+function drawNotes() {
+  ctxn.clearRect(0, 0, W, H);
+  NOTES.forEach((n, i) => {
+    n.x += n.vx; n.y += n.vy; n.rot += n.vrot; n.life++;
+    const prog = n.life / n.maxLife;
+    n.alpha = prog < .15 ? prog/.15 : prog > .75 ? (1-prog)/.25 : 1;
+    ctxn.save();
+    ctxn.translate(n.x, n.y);
+    ctxn.rotate(n.rot);
+    ctxn.font = `${n.size}px serif`;
+    ctxn.globalAlpha = n.alpha * 0.7;
+    ctxn.fillStyle = `rgba(${n.col.join(',')},1)`;
+    ctxn.shadowColor = `rgba(${n.col.join(',')},0.8)`;
+    ctxn.shadowBlur = 12;
+    ctxn.fillText(n.char, 0, 0);
+    ctxn.restore();
+    if (n.life >= n.maxLife || n.y < -50) NOTES[i] = spawnNote();
+  });
+  requestAnimationFrame(drawNotes);
+}
+
+/* ════════════════════════════════════════
+   LAYER 3: STAFF WAVEFORM — animated sound waves like musical staff
+════════════════════════════════════════ */
+const cstaff = document.getElementById('c-staff');
+const ctxs = cstaff.getContext('2d');
+
+// Audio-reactive fake: use multiple layered sine waves at different speeds/amps
+const WAVES = [
+  { amp: 18, freq: .008, speed: .8, col: '56,189,248', alpha: .12 },
+  { amp: 28, freq: .006, speed: .55, col: '167,139,250', alpha: .09 },
+  { amp: 12, freq: .012, speed: 1.1, col: '52,211,153', alpha: .08 },
+  { amp: 22, freq: .005, speed: .4, col: '56,189,248', alpha: .07 },
+  { amp: 8,  freq: .018, speed: 1.5, col: '167,139,250', alpha: .06 },
+];
+// 5-line staff positions (as fractions of H)
+const STAFF_Y = [.28, .33, .38, .43, .48];
+let ST = 0;
+
+function drawStaff() {
+  ctxs.clearRect(0, 0, W, H);
+
+  // Draw 5-line staff (very faint horizontal lines)
+  STAFF_Y.forEach(fy => {
+    ctxs.beginPath();
+    ctxs.moveTo(0, fy * H);
+    ctxs.lineTo(W, fy * H);
+    ctxs.strokeStyle = 'rgba(56,189,248,0.04)';
+    ctxs.lineWidth = 1;
+    ctxs.stroke();
+  });
+
+  // Animated waveforms riding the staff
+  WAVES.forEach((w, wi) => {
+    const baseY = STAFF_Y[wi % STAFF_Y.length] * H;
+    ctxs.beginPath();
+    for (let x = 0; x <= W; x += 2) {
+      const y = baseY + Math.sin(x * w.freq + ST * w.speed) * w.amp
+                      + Math.sin(x * w.freq * 1.7 + ST * w.speed * .6) * w.amp * .4;
+      x === 0 ? ctxs.moveTo(x, y) : ctxs.lineTo(x, y);
+    }
+    ctxs.strokeStyle = `rgba(${w.col},${w.alpha})`;
+    ctxs.lineWidth = 1.5;
+    ctxs.shadowColor = `rgba(${w.col},0.3)`;
+    ctxs.shadowBlur = 6;
+    ctxs.stroke();
+    ctxs.shadowBlur = 0;
+  });
+
+  // Vertical bar lines (like music bar lines)
+  const barW = W / 6;
+  for (let b = 0; b < 6; b++) {
+    const bx = b * barW + (ST * 30) % barW;
+    const top = STAFF_Y[0] * H - 10;
+    const bot = STAFF_Y[4] * H + 10;
+    ctxs.beginPath();
+    ctxs.moveTo(bx, top); ctxs.lineTo(bx, bot);
+    ctxs.strokeStyle = 'rgba(56,189,248,0.04)';
+    ctxs.lineWidth = 1;
+    ctxs.stroke();
+  }
+
+  // Spectrum bars at bottom (like audio visualizer)
+  const barCount = 60;
+  const bw = W / barCount;
+  for (let i = 0; i < barCount; i++) {
+    const bh = 20 + 40 * Math.abs(Math.sin(i * .3 + ST * 2)) * Math.abs(Math.sin(i * .17 + ST * 1.3));
+    const hue = i / barCount;
+    const r = hue < .5 ? 56 + hue*200 : 167;
+    const g = hue < .5 ? 189 : 139 - hue*100;
+    const bl = hue < .5 ? 248 : 250;
+    ctxs.fillStyle = `rgba(${Math.round(r)},${Math.round(g)},${Math.round(bl)},0.12)`;
+    ctxs.fillRect(i * bw, H - bh - 20, bw - 1, bh);
+  }
+
+  ST += .012;
+  requestAnimationFrame(drawStaff);
+}
+
+// Init all
+rsz();
+drawBg();
+drawNotes();
+drawStaff();
+
+/* ════════ CURSOR ════════ */
+const cur = document.getElementById('cur');
+const curr = document.getElementById('cur-r');
+let mx=0, my=0, rx=0, ry=0;
+document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; });
+(function ac() {
+  cur.style.left=mx+'px'; cur.style.top=my+'px';
+  rx+=(mx-rx)*.1; ry+=(my-ry)*.1;
+  curr.style.left=rx+'px'; curr.style.top=ry+'px';
+  requestAnimationFrame(ac);
+})();
+document.querySelectorAll('a,button,.pcard,.ti,.sg,.act').forEach(el => {
+  el.addEventListener('mouseenter', () => {
+    cur.style.transform='translate(-50%,-50%) scale(2.8)';
+    cur.style.background='var(--violet)';
+    cur.style.boxShadow='0 0 20px var(--violet),0 0 50px rgba(167,139,250,0.3)';
+    curr.style.width='48px'; curr.style.height='48px';
+    curr.style.borderColor='rgba(167,139,250,0.5)';
+  });
+  el.addEventListener('mouseleave', () => {
+    cur.style.transform='translate(-50%,-50%) scale(1)';
+    cur.style.background='var(--cyan)';
+    cur.style.boxShadow='0 0 16px var(--cyan),0 0 40px rgba(56,189,248,0.3)';
+    curr.style.width='36px'; curr.style.height='36px';
+    curr.style.borderColor='rgba(56,189,248,0.4)';
+  });
+});
+
+/* ════════ SCROLL ════════ */
+const navEl = document.getElementById('nav');
+const prog = document.getElementById('prog');
+window.addEventListener('scroll', () => {
+  navEl.classList.toggle('scr', window.scrollY > 60);
+  const tot = document.body.scrollHeight - window.innerHeight;
+  prog.style.width = (window.scrollY/tot*100)+'%';
+});
+
+/* ════════ COUNT UP ════════ */
+function countUp(id, to, dur=1400, sfx='') {
+  const el = document.getElementById(id);
+  let v=0, s=to/(dur/16);
+  const t = setInterval(() => {
+    v=Math.min(v+s,to); el.textContent=Math.floor(v)+sfx;
+    if(v>=to) clearInterval(t);
+  }, 16);
+}
+setTimeout(() => {
+  countUp('s1',3,1200); countUp('s2',2,1000);
+  countUp('s3',10,1300,'%'); countUp('s4',44,1600,'+');
+}, 700);
+
+/* ════════ INTERSECTION OBSERVER ════════ */
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const d = parseInt(e.target.dataset.d||0);
+      setTimeout(() => e.target.classList.add('v'), d);
+      obs.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.1 });
+
+['.intro-card','.edu-card'].forEach(s => document.querySelectorAll(s).forEach(el => obs.observe(el)));
+document.querySelectorAll('.pcard').forEach((el,i)=>{ el.dataset.d=i*130; obs.observe(el); });
+document.querySelectorAll('.sg').forEach((el,i)=>{ el.dataset.d=i*100; obs.observe(el); });
+document.querySelectorAll('.ti').forEach((el,i)=>{ el.dataset.d=i*140; obs.observe(el); });
+document.querySelectorAll('.act').forEach((el,i)=>{ el.dataset.d=i*100; obs.observe(el); });
+
+/* ════════ SKILL BARS ════════ */
+const bobs = new IntersectionObserver(e => {
+  e.forEach(en => {
+    if (en.isIntersecting) {
+      en.target.querySelectorAll('.bar-f').forEach(b=>{
+        setTimeout(()=>b.style.width=b.dataset.w+'%', 250);
+      });
+      bobs.unobserve(en.target);
+    }
+  });
+}, { threshold:.15 });
+document.querySelectorAll('.skills-wrap').forEach(el=>bobs.observe(el));
+
+/* ════════ PARALLAX HERO NAME ════════ */
+window.addEventListener('scroll', () => {
+  const y = window.scrollY;
+  const nm = document.querySelector('.hero-name');
+  if (nm && y < window.innerHeight) nm.style.transform = `translateY(${y*.15}px)`;
+});
+
+/* ════════ GLITCH EFFECT on name ════════ */
+const glitch = document.querySelector('.hero-name');
+setInterval(() => {
+  if (Math.random() > .93) {
+    const ox = (Math.random()-.5)*8, oy = (Math.random()-.5)*3;
+    glitch.style.textShadow = `${ox}px ${oy}px rgba(56,189,248,.7), ${-ox}px ${-oy}px rgba(167,139,250,.7)`;
+    setTimeout(() => glitch.style.textShadow = '', 90);
+  }
+}, 2200);
+
+/* ════════ HOVER RIPPLE on cards ════════ */
+document.querySelectorAll('.pcard,.hc-item').forEach(card => {
+  card.addEventListener('click', e => {
+    const r = document.createElement('span');
+    const rect = card.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height) * 2;
+    r.style.cssText = `position:absolute;border-radius:50%;width:${size}px;height:${size}px;
+      left:${e.clientX-rect.left-size/2}px;top:${e.clientY-rect.top-size/2}px;
+      background:rgba(56,189,248,0.1);transform:scale(0);animation:ripple .6s ease forwards;pointer-events:none;z-index:10`;
+    if (!document.getElementById('ripple-style')) {
+      const st = document.createElement('style');
+      st.id='ripple-style';
+      st.textContent='@keyframes ripple{to{transform:scale(1);opacity:0}}';
+      document.head.appendChild(st);
+    }
+    card.appendChild(r);
+    setTimeout(() => r.remove(), 700);
+  });
+});
+</script>
+</body>
+</html>
